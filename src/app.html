@@ -465,6 +465,18 @@
       elements.wordWrap.addEventListener('change', () => {
         elements.textarea.classList.toggle('no-word-wrap', !elements.wordWrap.checked);
       });
+      
+      // Prevent losing focus on the <textarea>
+      document.querySelectorAll('input[type="radio"], input[type="checkbox"]').forEach(input => {
+        input.addEventListener('click', () => {
+          elements.textarea.focus();
+        });
+
+        // Add similar handler for touch start events for mobile devices
+        input.addEventListener('touchstart', () => {
+          elements.textarea.focus();
+        });
+      });
     </script>
   </head>
   <body>
