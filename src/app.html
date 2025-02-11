@@ -199,6 +199,235 @@
         }
       }
     </style>
+    <script>
+      // DOM Elements
+      const elements = {
+        findInput: document.getElementById('find-input'),
+        replaceInput: document.getElementById('replace-input'),
+        textarea: document.getElementById('main-textarea'),
+        messageLog: document.getElementById('message-log'),
+        findBtn: document.getElementById('find-next-btn'),
+        findAllBtn: document.getElementById('find-all-btn'),
+        replaceBtn: document.getElementById('replace-btn'),
+        replaceAllBtn: document.getElementById('replace-all-btn'),
+        matchWord: document.getElementById('match-whole-word'),
+        matchCase: document.getElementById('match-case'),
+        wrapAround: document.getElementById('wrap-around'),
+        modeNormal: document.getElementById('mode-normal'),
+        modeExtended: document.getElementById('mode-extended'),
+        modeRegex: document.getElementById('mode-regex'),
+        regexFlags: document.getElementById('regex-flags'),
+        directionUp: document.getElementById('direction-up'),
+        directionDown: document.getElementById('direction-down'),
+        wordWrap: document.getElementById('word-wrap'),
+      };
+
+      let lastIndex = 0;
+
+      // Create search pattern based on options
+      function createSearchPattern(searchText) {
+        if (!searchText) return null;
+
+        let pattern = searchText;
+
+        if (elements.modeNormal.checked) {
+        
+          // Normal mode - escape special regex characters
+          pattern = pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          
+        } else if (elements.modeExtended.checked) {
+        
+          pattern = pattern
+            .replace(/\\n/g, '\n')
+            .replace(/\\r/g, '\r')
+            .replace(/\\t/g, '\t')
+            .replace(/\\0/g, '\0')
+            .replace(/\\x([0-9A-Fa-f]{2})/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)));
+          
+          pattern = pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            
+        } else if (elements.modeRegex.checked) {
+          try {
+            const flags = elements.regexFlags.value.replaceAll('mg', '') + 'mg';
+            return new RegExp(pattern, flags);
+          } catch (e) {
+            message('Invalid regular expression.', 'error');
+            return null;
+          }
+        }
+
+        if (elements.matchWord.checked) {
+          pattern = `\\b${pattern}\\b`;
+        }
+
+        const flags = elements.matchCase.checked ? 'g' : 'gi';
+        return new RegExp(pattern, flags);
+      }
+
+      // Find next match
+      function findNext() {
+        const pattern = createSearchPattern(elements.findInput.value);
+        if (!pattern) return false;
+
+        const text = elements.textarea.value;
+        const searchDirection = elements.directionUp.checked ? -1 : 1;
+        
+        let match;
+        if (searchDirection > 0) {
+          pattern.lastIndex = elements.textarea.selectionEnd;
+          match = pattern.exec(text);
+          
+          if (!match && elements.wrapAround.checked) {
+            pattern.lastIndex = 0;
+            match = pattern.exec(text);
+          }
+        } else {
+          // Search backwards
+          const currentPos = elements.textarea.selectionStart;
+          const matches = Array.from(text.matchAll(pattern));
+          match = matches.reverse().find(m => m.index < currentPos);
+          
+          if (!match && elements.wrapAround.checked) {
+            match = matches[0];
+          }
+        }
+
+        if (match) {
+          elements.textarea.focus();
+          elements.textarea.setSelectionRange(match.index, match.index + match[0].length);
+          
+          lastIndex = searchDirection > 0 ? pattern.lastIndex : match.index;
+          message('');
+          return true;
+        } else {
+          message('No matches found.', 'info');
+          return false;
+        }
+      }
+      
+      function findAll() {
+        const pattern = createSearchPattern(elements.findInput.value);
+        if (!pattern) return false;
+
+        const text = elements.textarea.value;
+        const matches = text.matchAll(pattern);
+        const matchCount = Array.from(matches).length;
+
+        if (matchCount > 0) {
+          message(`Found ${matchCount} matches.`, 'info');
+        } else {
+          message("Found 0 matches.", 'info');
+        }
+      }
+
+      // Replace current selection and find next
+      function replace() {
+        const start = elements.textarea.selectionStart;
+        const end = elements.textarea.selectionEnd;
+        const selection = elements.textarea.value.substring(start, end);
+        
+        const pattern = createSearchPattern(elements.findInput.value);
+        if (!pattern || !pattern.test(selection)) {
+          message('Please find a match first.', 'info');
+          return;
+        }
+
+        let replacement = elements.replaceInput.value;
+
+        if (elements.modeExtended.checked) {
+          replacement = replacement
+            .replace(/\\n/g, '\n')
+            .replace(/\\r/g, '\r')
+            .replace(/\\t/g, '\t');
+        } else if (elements.modeRegex.checked) {
+          // Use replace method with backreferences for regex mode
+          replacement = selection.replace(pattern, replacement);
+          replacement = replacement
+            .replace(/\\n/g, '\n')
+            .replace(/\\r/g, '\r')
+            .replace(/\\t/g, '\t');
+        } else {
+          // Escape replacement string for literal replacement in normal mode
+          replacement = replacement.replace(/\$/g, '$$'); // Escape $ for literal $
+        }
+
+        elements.textarea.value = 
+          elements.textarea.value.substring(0, start) +
+          replacement +
+          elements.textarea.value.substring(end);
+          
+        lastIndex = start + replacement.length;
+        elements.textarea.setSelectionRange(lastIndex, lastIndex);
+        
+        findNext();
+        message('');
+      }
+
+      // Replace all matches
+      function replaceAll() {
+        const pattern = createSearchPattern(elements.findInput.value);
+        if (!pattern) return;
+
+        const text = elements.textarea.value;
+        
+        let replacement = elements.replaceInput.value;
+
+        if (elements.modeExtended.checked) {
+          replacement = replacement
+            .replace(/\\n/g, '\n')
+            .replace(/\\r/g, '\r')
+            .replace(/\\t/g, '\t');
+        } else if (elements.modeRegex.checked) {
+          // Use replaceAll method with backreferences for regex mode
+          // replacement = text.replaceAll(pattern, replacement);
+          replacement = replacement
+            .replace(/\\n/g, '\n')
+            .replace(/\\r/g, '\r')
+            .replace(/\\t/g, '\t');
+        } else {
+          // Escape replacement string for literal replacement in normal mode
+          replacement = replacement.replace(/\$/g, '$$$$'); // Escape $ for literal $
+        }
+
+        const newText = text.replace(pattern, replacement);
+        const count = (text.match(pattern) || []).length;
+
+        if (count > 0) {
+          elements.textarea.value = newText;
+          lastIndex = elements.textarea.value.lastIndexOf(replacement) + replacement.length;
+          elements.textarea.setSelectionRange(lastIndex, lastIndex);
+          elements.textarea.focus();
+          message(`Replaced ${count} occurrence${count !== 1 ? 's' : ''}.`, 'info');
+        } else {
+          message('No matches found.', 'error');
+        }
+      }
+      
+      function message(str, severity) {
+        elements.messageLog.textContent = str;
+        elements.messageLog.className = severity || '';
+      }
+
+      // Event Listeners
+      elements.findBtn.addEventListener('click', findNext);
+      elements.findAllBtn.addEventListener('click', findAll);
+      elements.replaceBtn.addEventListener('click', replace);
+      elements.replaceAllBtn.addEventListener('click', replaceAll);
+
+      // Update lastIndex on selection change
+      elements.textarea.addEventListener('select', () => {
+        lastIndex = elements.textarea.selectionEnd;
+      });
+
+      // Reset lastIndex when search text changes
+      elements.findInput.addEventListener('input', () => {
+        lastIndex = 0;
+      });
+      
+      elements.wordWrap.addEventListener('change', () => {
+        elements.textarea.classList.toggle('no-word-wrap', !elements.wordWrap.checked);
+      });
+    </script>
   </head>
   <body>
     <div class="options-container">
