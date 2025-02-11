@@ -424,6 +424,16 @@
         lastIndex = 0;
       });
       
+      // Tab Key Handling
+      elements.textarea.addEventListener('keydown', function(e) {
+        if (e.key == 'Tab') {
+          e.preventDefault();
+          var startPos = this.selectionStart;
+          this.value = this.value.substring(0, startPos) + "\t" + this.value.substring(this.selectionEnd);
+          this.selectionStart = this.selectionEnd = startPos + 1;
+        }
+      });
+      
       elements.wordWrap.addEventListener('change', () => {
         elements.textarea.classList.toggle('no-word-wrap', !elements.wordWrap.checked);
       });
