@@ -223,6 +223,26 @@
       };
 
       let lastIndex = 0;
+      
+      // Helper function to check if matched text is visible in textarea viewport
+      function isMatchVisible(matchStartIndex, matchEndIndex) {
+        const textarea = elements.textarea;
+        const lineHeight = parseInt(getComputedStyle(textarea).lineHeight);
+        const visibleLines = Math.floor(textarea.clientHeight / lineHeight);
+        
+        // Calculate the line numbers for match and current scroll position
+        const textBeforeMatch = textarea.value.substr(0, matchStartIndex);
+        const matchStartLine = textBeforeMatch.split('\n').length;
+        const matchEndLine = textarea.value.substr(0, matchEndIndex).split('\n').length;
+        
+        // Calculate visible line range
+        const scrollTop = textarea.scrollTop;
+        const firstVisibleLine = Math.floor(scrollTop / lineHeight) + 1;
+        const lastVisibleLine = firstVisibleLine + visibleLines - 2;
+        
+        // Check if match is within visible range
+        return matchStartLine >= firstVisibleLine && matchEndLine <= lastVisibleLine;
+      }
 
       // Create search pattern based on options
       function createSearchPattern(searchText) {
@@ -295,6 +315,14 @@
         if (match) {
           elements.textarea.focus();
           elements.textarea.setSelectionRange(match.index, match.index + match[0].length);
+          
+          // Add scrolling to matched text
+          // Only scroll if match is not already visible
+          if (!isMatchVisible(match.index, match.index + match[0].length)) {
+            const lineHeight = parseInt(getComputedStyle(elements.textarea).lineHeight);
+            const lines = elements.textarea.value.substr(0, match.index).split('\n').length;
+            elements.textarea.scrollTop = (lines - 10) * lineHeight;
+          }
           
           lastIndex = searchDirection > 0 ? pattern.lastIndex : match.index;
           message('');
