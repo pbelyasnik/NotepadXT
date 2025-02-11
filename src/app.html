@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Find and Replace Tool</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, interactive-widget=resizes-content" />
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        font-size: 14px;
+        padding: 10px;
+        padding-bottom: 0px;
+        margin: 0;
+      }
+      
+      .row {
+        display: flex;
+        align-items: center;
+        margin-bottom: 10px;
+        gap: 10px;
+      }
+      
+      .label {
+        width: 100px;
+      }
+      
+      input[type="text"] {
+        padding: 2px 4px;
+        border: 1px solid rgb(153, 153, 153);
+        border-radius: 3px;
+        flex: 1;
+        min-width: 0;
+        font-family: monospace;
+        font-size: 14px;
+      }
+      
+      button {
+        background: rgb(224, 224, 224);
+        border: 1px solid rgb(204, 204, 204);
+        border-radius: 3px;
+        background-color: rgb(240, 240, 240);
+        padding: 2px 8px;
+        white-space: nowrap;
+        cursor: pointer;
+        width: 84px;
+      }
+      
+      button:hover {
+        background-color: rgb(224, 224, 224);
+      }
+      
+      .options-container {
+        display: flex;
+        gap: 20px;
+      }
+      
+      .checkbox-group {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+        padding-top: 5px;
+      }
+      
+      .matching-options,
+      .search-mode,
+      .direction,
+      .view {
+        border: 1px solid rgb(153, 153, 153);
+        border-radius: 5px;
+        padding: 10px;
+      }
+      
+      .radio-group {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+        padding-top: 5px;
+      }
+      
+      .extended-input {
+        width: 50px;
+        margin-left: 5px;
+      }
+      
+      .message-box .error { color: red; }
+      .message-box .info { color: blue; }
+      
+      textarea {
+        width: 100%;
+        min-height: 400px;
+        height: calc(100dvh - 165px);
+        border: 1px solid rgb(153, 153, 153);
+        border-radius: 5px;
+        margin-top: 20px;
+        padding: 5px;
+        box-sizing: border-box;
+        resize: vertical;
+        font-family: monospace;
+        font-size: 16px;
+        line-height: 1.15em;
+        scroll-behavior: smooth;
+      }
+      
+      textarea.no-word-wrap {
+        white-space: pre; /* No word-wrap */
+      }
+
+      /* Desktop Layout (Default) */
+      @media (min-width: 769px) {
+        .options-container {
+          display: flex;
+          gap: 20px;
+        }
+        
+        .find-replace-group {
+          flex: 2;
+          padding-top: 25px;
+        }
+        .matching-options {
+          flex: 0.85;
+        }
+        .search-mode {
+          flex: 1;
+        }
+        .direction {
+          flex: 0.35;
+        }
+        .view {
+          flex: 0.45;
+        }
+        
+        .buttons-wrapper {
+          display: inline-flex;
+          gap: 10px;
+        }
+      }
+
+      /* Mobile Layout */
+      @media (max-width: 768px) {
+        .row {
+          flex-wrap: wrap;
+          gap: 5px;
+        }
+        
+        .label {
+          /* width: 100%; */
+          margin: -5px 0px;
+          margin-right: -20px;
+        }
+        
+        .row input[type="text"] {
+          width: 100%;
+        }
+        
+        .options-container {
+          display: flex;
+          flex-direction: column;
+          gap: 15px;
+        }
+        
+        .buttons-wrapper {
+          display: flex;
+          gap: 10px;
+          width: 100%;
+          justify-content: space-between;
+        }
+        
+        .buttons-wrapper button {
+          flex: 1;
+        }
+        
+        .matching-options label,
+        .search-mode label,
+        .direction label,
+        .view label {
+          margin: -2px 0;
+        }
+        
+        .find-replace-group,
+        .matching-options,
+        .search-mode,
+        .direction,
+        .view {
+          margin-bottom: -10px;
+        }
+        
+        .find-replace-group {
+          margin-bottom: -25px;
+        }
+        
+        .extended-input {
+          margin-left: 20px;
+          margin-top: 5px;
+        }
+        
+        textarea {
+          height: 280px;
+          min-height: 280px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="options-container">
+      <div class="find-replace-group">
+        <div class="row">
+          <span class="label">Find what:</span>
+          <input type="text" id="find-input" tabindex="1">
+          <div class="buttons-wrapper">
+            <button id="find-next-btn">Find Next</button>
+            <button id="find-all-btn">Count All</button>
+          </div>
+        </div>
+        <div class="row">
+          <span class="label">Replace with:</span>
+          <input type="text" id="replace-input" tabindex="2">
+          <div class="buttons-wrapper">
+            <button id="replace-btn">Replace</button>
+            <button id="replace-all-btn">Replace All</button>
+          </div>
+        </div>
+        <div class="row">
+          <div class="message-box"><span id="message-log"></span></div>
+        </div>
+      </div>
+      
+      <div class="matching-options">
+        Matching Options
+        <div class="checkbox-group">
+          <label>
+            <input type="checkbox" id="match-whole-word">
+            Match whole word only
+          </label>
+          <label>
+            <input type="checkbox" id="match-case" checked>
+            Match case
+          </label>
+          <label>
+            <input type="checkbox" id="wrap-around" checked>
+            Wrap around
+          </label>
+        </div>
+      </div>
+    
+      <div class="search-mode">
+        Search Mode
+        <div class="radio-group">
+          <label>
+            <input type="radio" name="mode" id="mode-normal">
+            Normal
+          </label>
+          <label>
+            <input type="radio" name="mode" id="mode-extended" checked>
+            Extended (\n, \r, \t, \0, \x...)
+          </label>
+          <label>
+            <input type="radio" name="mode" id="mode-regex">
+            Regular expression
+            <input type="text" id="regex-flags" class="extended-input" placeholder="flags">
+          </label>
+        </div>
+      </div>
+      
+      <div class="direction">
+        Direction
+        <div class="radio-group">
+          <label>
+            <input type="radio" name="direction" id="direction-up">
+            Up
+          </label>
+          <label>
+            <input type="radio" name="direction" id="direction-down" checked>
+            Down
+          </label>
+        </div>
+      </div>
+      
+      <div class="view">
+        View
+        <div class="checkbox-group">
+          <label>
+            <input type="checkbox" id="word-wrap" checked>
+            Word wrap
+          </label>
+        </div>
+      </div>
+    </div>
+    
+    <textarea id="main-textarea" tabindex="3"></textarea>
+  </body>
+</html>
