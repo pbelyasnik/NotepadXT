@@ -282,6 +282,8 @@
               previousState.selectionStart,
               previousState.selectionEnd
             );
+
+            forceScrollTextArea(previousState.selectionStart, previousState.selectionEnd);
             
             this.isPerformingUndoRedo = false;
             return true;
@@ -309,6 +311,8 @@
               nextState.selectionStart,
               nextState.selectionEnd
             );
+
+            forceScrollTextArea(nextState.selectionStart, nextState.selectionEnd);
             
             this.isPerformingUndoRedo = false;
             return true;
@@ -332,24 +336,34 @@
           return hashHex;
         }
         
-        // Helper function to check if matched text is visible in textarea viewport
-        function isMatchVisible(matchStartIndex, matchEndIndex) {
+        // Helper function to check if selected text is visible in textarea viewport
+        function isSelectedTextVisible(selectedStartIndex, selectedEndIndex) {
           const textarea = elements.textarea;
-          const lineHeight = parseInt(getComputedStyle(textarea).lineHeight);
+          const lineHeight = parseFloat(getComputedStyle(textarea).lineHeight);
           const visibleLines = Math.floor(textarea.clientHeight / lineHeight);
           
-          // Calculate the line numbers for match and current scroll position
-          const textBeforeMatch = textarea.value.substr(0, matchStartIndex);
-          const matchStartLine = textBeforeMatch.split('\n').length;
-          const matchEndLine = textarea.value.substr(0, matchEndIndex).split('\n').length;
+          // Calculate the line numbers for selected text and current scroll position
+          const textBeforeSelected = textarea.value.substr(0, selectedStartIndex);
+          const selectedStartLine = textBeforeSelected.split('\n').length;
+          const selectedEndLine = textarea.value.substr(0, selectedEndIndex).split('\n').length;
           
           // Calculate visible line range
           const scrollTop = textarea.scrollTop;
-          const firstVisibleLine = Math.floor(scrollTop / lineHeight) + 1;
-          const lastVisibleLine = firstVisibleLine + visibleLines - 2;
+          const firstVisibleLine = Math.floor(scrollTop / lineHeight) + 2;
+          const lastVisibleLine = firstVisibleLine + visibleLines - 4;
           
-          // Check if match is within visible range
-          return matchStartLine >= firstVisibleLine && matchEndLine <= lastVisibleLine;
+          // Check if selected text is within visible range
+          return selectedStartLine >= firstVisibleLine && selectedEndLine <= lastVisibleLine;
+        }
+
+        function forceScrollTextArea(selectedStartIndex, selectedEndIndex) {
+          // Only scroll if selected text is not already visible
+          if (!isSelectedTextVisible(selectedStartIndex, selectedEndIndex)) {
+            const lineHeight = parseFloat(getComputedStyle(elements.textarea).lineHeight);
+            const lines = elements.textarea.value.substr(0, selectedStartIndex).split('\n').length;
+            const offsetTopLines = 10;
+            elements.textarea.scrollTop = (lines - offsetTopLines) * lineHeight;
+          }
         }
 
         // Create search pattern based on options
@@ -424,13 +438,8 @@
             elements.textarea.focus();
             elements.textarea.setSelectionRange(match.index, match.index + match[0].length);
             
-            // Add scrolling to matched text
-            // Only scroll if match is not already visible
-            if (!isMatchVisible(match.index, match.index + match[0].length)) {
-              const lineHeight = parseInt(getComputedStyle(elements.textarea).lineHeight);
-              const lines = elements.textarea.value.substr(0, match.index).split('\n').length;
-              elements.textarea.scrollTop = (lines - 10) * lineHeight;
-            }
+            // Perform scrolling to matched text
+            forceScrollTextArea(match.index, match.index + match[0].length);
             
             lastIndex = searchDirection > 0 ? pattern.lastIndex : match.index;
             message('');
@@ -599,7 +608,7 @@
           // Add similar handler for touch start events for mobile devices
           input.addEventListener('touchstart', () => {
             elements.textarea.focus();
-          });
+          }, { passive: true });
         });
         
         // Add keyboard event listeners
@@ -616,18 +625,18 @@
 
         // Add keyboard shortcuts
         document.addEventListener('keydown', (e) => {
-          const key = e.key.toLowerCase();
-
           // Undo: Ctrl/Cmd + Z
-          if ((e.ctrlKey || e.metaKey) && key === 'z' && !e.shiftKey) {
+          if ((e.ctrlKey || e.metaKey) && e.code === 'KeyZ' && !e.shiftKey) {
             e.preventDefault();
             undoManager.undo();
+            elements.textarea.focus();
           }
           
           // Redo: Ctrl/Cmd + Y or Ctrl/Cmd + Shift + Z
-          if ((e.ctrlKey || e.metaKey) && (key === 'y' || (key === 'z' && e.shiftKey))) {
+          if ((e.ctrlKey || e.metaKey) && (e.code === 'KeyY' || (e.code === 'KeyZ' && e.shiftKey))) {
             e.preventDefault();
             undoManager.redo();
+            elements.textarea.focus();
           }
         });
 
