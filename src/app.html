@@ -225,6 +225,113 @@
 
         let lastIndex = 0;
         
+        // State management for undo/redo
+        const undoManager = {
+          undoStack: [],
+          redoStack: [],
+          maxStackSize: 1000,
+          isPerformingUndoRedo: false,
+
+          // Save state before change
+          async saveState(text, selectionStart, selectionEnd) {
+            if (this.isPerformingUndoRedo) return;
+            
+            if (this.undoStack.length > 0) {
+                const lastState = this.undoStack[this.undoStack.length - 1];
+
+                if (await getSha256Hash(text) === await getSha256Hash(lastState.text)) {
+                    return; // Don't save if the hash is the same
+                }
+            }
+            
+            this.undoStack.push({
+              text,
+              selectionStart,
+              selectionEnd,
+              timestamp: Date.now()
+            });
+
+            // Clear redo stack on new changes
+            this.redoStack = [];
+
+            // Limit stack size
+            if (this.undoStack.length > this.maxStackSize) {
+              this.undoStack.shift();
+            }
+          },
+
+          // Perform undo
+          undo() {
+            if (this.undoStack.length === 0) return false;
+            
+            this.isPerformingUndoRedo = true;
+            
+            // Save current state to redo stack
+            const currentState = {
+              text: elements.textarea.value,
+              selectionStart: elements.textarea.selectionStart,
+              selectionEnd: elements.textarea.selectionEnd,
+              timestamp: Date.now()
+            };
+            this.redoStack.push(currentState);
+
+            // Restore previous state
+            const previousState = this.undoStack.pop();
+            elements.textarea.value = previousState.text;
+            elements.textarea.setSelectionRange(
+              previousState.selectionStart,
+              previousState.selectionEnd
+            );
+            
+            this.isPerformingUndoRedo = false;
+            return true;
+          },
+
+          // Perform redo
+          redo() {
+            if (this.redoStack.length === 0) return false;
+            
+            this.isPerformingUndoRedo = true;
+            
+            // Save current state to undo stack
+            const currentState = {
+              text: elements.textarea.value,
+              selectionStart: elements.textarea.selectionStart,
+              selectionEnd: elements.textarea.selectionEnd,
+              timestamp: Date.now()
+            };
+            this.undoStack.push(currentState);
+
+            // Restore next state
+            const nextState = this.redoStack.pop();
+            elements.textarea.value = nextState.text;
+            elements.textarea.setSelectionRange(
+              nextState.selectionStart,
+              nextState.selectionEnd
+            );
+            
+            this.isPerformingUndoRedo = false;
+            return true;
+          },
+
+          // Clear stacks
+          clear() {
+            this.undoStack = [];
+            this.redoStack = [];
+          }
+        };
+        
+        async function getSha256Hash(message) {
+          const msgUint8 = new TextEncoder().encode(message); // encode as (utf-8) Uint8Array
+          const hashBuffer = await window.crypto.subtle.digest("SHA-256", msgUint8); // hash the message
+          const hashArray = Array.from(new Uint8Array(hashBuffer)); // convert buffer to byte array
+          const hashHex = hashArray
+            .map((b) => b.toString(16).padStart(2, "0"))
+            .join(""); // convert bytes to hex string
+          
+          return hashHex;
+        }
+        
         // Helper function to check if matched text is visible in textarea viewport
         function isMatchVisible(matchStartIndex, matchEndIndex) {
           const textarea = elements.textarea;
@@ -360,6 +467,13 @@
             message('Please find a match first.', 'info');
             return;
           }
+          
+          // Save state before replacement
+          undoManager.saveState(
+            elements.textarea.value,
+            elements.textarea.selectionStart,
+            elements.textarea.selectionEnd
+          );
 
           let replacement = elements.replaceInput.value;
 
@@ -396,7 +510,7 @@
         function replaceAll() {
           const pattern = createSearchPattern(elements.findInput.value);
           if (!pattern) return;
-
+          
           const text = elements.textarea.value;
           
           let replacement = elements.replaceInput.value;
@@ -422,10 +536,19 @@
           const count = (text.match(pattern) || []).length;
 
           if (count > 0) {
+            // Save state before replacement
+            undoManager.saveState(
+              elements.textarea.value,
+              elements.textarea.selectionStart,
+              elements.textarea.selectionEnd
+            );
+
+            // Updating content after replacement
             elements.textarea.value = newText;
             lastIndex = elements.textarea.value.lastIndexOf(replacement) + replacement.length;
             elements.textarea.setSelectionRange(lastIndex, lastIndex);
             elements.textarea.focus();
+            
             message(`Replaced ${count} occurrence${count !== 1 ? 's' : ''}.`, 'info');
           } else {
             message('No matches found.', 'error');
@@ -478,6 +601,40 @@
             elements.textarea.focus();
           });
         });
+        
+        // Add keyboard event listeners
+        elements.textarea.addEventListener('beforeinput', (e) => {
+          // Don't save state for undo/redo operations
+          if (!undoManager.isPerformingUndoRedo) {
+            undoManager.saveState(
+              elements.textarea.value,
+              elements.textarea.selectionStart,
+              elements.textarea.selectionEnd
+            );
+          }
+        });
+
+        // Add keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+          const key = e.key.toLowerCase();
+
+          // Undo: Ctrl/Cmd + Z
+          if ((e.ctrlKey || e.metaKey) && key === 'z' && !e.shiftKey) {
+            e.preventDefault();
+            undoManager.undo();
+          }
+          
+          // Redo: Ctrl/Cmd + Y or Ctrl/Cmd + Shift + Z
+          if ((e.ctrlKey || e.metaKey) && (key === 'y' || (key === 'z' && e.shiftKey))) {
+            e.preventDefault();
+            undoManager.redo();
+          }
+        });
+
+        // Clear undo/redo stacks when new text is loaded
+        function clearHistory() {
+          undoManager.clear();
+        }
       });
     </script>
   </head>
