@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Find and Replace Tool</title>
+    <title>NotepadXT</title>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, interactive-widget=resizes-content" />
     <style>
@@ -200,6 +200,7 @@
       }
     </style>
     <script>
+      document.addEventListener('DOMContentLoaded', () => {
       // DOM Elements
       const elements = {
         findInput: document.getElementById('find-input'),
@@ -476,6 +477,7 @@
         input.addEventListener('touchstart', () => {
           elements.textarea.focus();
         });
+      });
       });
     </script>
   </head>
