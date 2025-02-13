@@ -366,6 +366,16 @@
           }
         }
 
+        function transcodeStringControlSymbols(s) {
+          return s
+            .replace(/(?<!\\)\\n/g, '\n')
+            .replace(/(?<!\\)\\r/g, '\r')
+            .replace(/(?<!\\)\\t/g, '\t')
+            .replace(/(?<!\\)\\0/g, '\0')
+            .replace(/(?<!\\)\\x([0-9A-Fa-f]{2,4})/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
+            .replace(/[\\]{2}([nrt0x])/g, '\\$1');
+        }
+
         // Create search pattern based on options
         function createSearchPattern(searchText) {
           if (!searchText) return null;
@@ -379,14 +389,7 @@
             
           } else if (elements.modeExtended.checked) {
           
-            pattern = pattern
-              .replace(/(?<!\\)\\n/g, '\n')
-              .replace(/(?<!\\)\\r/g, '\r')
-              .replace(/(?<!\\)\\t/g, '\t')
-              .replace(/(?<!\\)\\0/g, '\0')
-              .replace(/(?<!\\)\\x([0-9A-Fa-f]{2,4})/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
-              .replace(/[\\]{2}([nrt0x])/g, '\\$1');
-            
+            pattern = transcodeStringControlSymbols(pattern);
             pattern = pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
               
           } else if (elements.modeRegex.checked) {
@@ -488,20 +491,11 @@
           let replacement = elements.replaceInput.value;
 
           if (elements.modeExtended.checked) {
-            replacement = replacement
-              .replace(/(?<!\\)\\n/g, '\n')
-              .replace(/(?<!\\)\\r/g, '\r')
-              .replace(/(?<!\\)\\t/g, '\t')
-              .replace(/[\\]{2}([nrt0x])/g, '\\$1');
+            replacement = transcodeStringControlSymbols(replacement);
           } else if (elements.modeRegex.checked) {
             // Use replace method with backreferences for regex mode
             replacement = selection.replace(pattern, replacement);
-            replacement = replacement
-              .replace(/(?<!\\)\\n/g, '\n')
-              .replace(/(?<!\\)\\r/g, '\r')
-              .replace(/(?<!\\)\\t/g, '\t')
-              .replace(/[\\]{2}([nrt0x])/g, '\\$1')
-              .replace(/\$/g, '$$');
+            replacement = transcodeStringControlSymbols(replacement).replace(/\$/g, '$$');
           } else {
             // Escape replacement string for literal replacement in normal mode
             replacement = replacement.replace(/\$/g, '$$'); // Escape $ for literal $
@@ -529,21 +523,11 @@
           let replacement = elements.replaceInput.value;
 
           if (elements.modeExtended.checked) {
-            replacement = replacement
-              .replace(/(?<!\\)\\n/g, '\n')
-              .replace(/(?<!\\)\\r/g, '\r')
-              .replace(/(?<!\\)\\t/g, '\t')
-              .replace(/[\\]{2}([nrt0x])/g, '\\$1')
-              .replace(/\$/g, '$$$$');
+            replacement = transcodeStringControlSymbols(replacement).replace(/\$/g, '$$$$');
           } else if (elements.modeRegex.checked) {
             // Use replaceAll method with backreferences for regex mode
             // replacement = text.replaceAll(pattern, replacement);
-            replacement = replacement
-              .replace(/(?<!\\)\\n/g, '\n')
-              .replace(/(?<!\\)\\r/g, '\r')
-              .replace(/(?<!\\)\\t/g, '\t')
-              .replace(/[\\]{2}([nrt0x])/g, '\\$1')
-              .replace(/\$/g, '$$');
+            replacement = transcodeStringControlSymbols(replacement).replace(/\$/g, '$$');
           } else {
             // Escape replacement string for literal replacement in normal mode
             replacement = replacement.replace(/\$/g, '$$$$'); // Escape $ for literal $
