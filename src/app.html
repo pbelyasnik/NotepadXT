@@ -200,8 +200,97 @@
         }
       }
     </style>
+  </head>
+  <body>
+    <div class="options-container">
+      <div class="find-replace-group">
+        <div class="row">
+          <span class="label">Find what:</span>
+          <input type="text" id="find-input" tabindex="1">
+          <div class="buttons-wrapper">
+            <button id="find-next-btn">Find Next</button>
+            <button id="find-all-btn">Count All</button>
+          </div>
+        </div>
+        <div class="row">
+          <span class="label">Replace with:</span>
+          <input type="text" id="replace-input" tabindex="2">
+          <div class="buttons-wrapper">
+            <button id="replace-btn">Replace</button>
+            <button id="replace-all-btn">Replace All</button>
+          </div>
+        </div>
+        <div class="row">
+          <div class="message-box"><span id="message-log"></span></div>
+        </div>
+      </div>
+      
+      <div class="matching-options">
+        Matching Options
+        <div class="checkbox-group">
+          <label>
+            <input type="checkbox" id="match-whole-word">
+            Match whole word only
+          </label>
+          <label>
+            <input type="checkbox" id="match-case" checked>
+            Match case
+          </label>
+          <label>
+            <input type="checkbox" id="wrap-around" checked>
+            Wrap around
+          </label>
+        </div>
+      </div>
+    
+      <div class="search-mode">
+        Search Mode
+        <div class="radio-group">
+          <label>
+            <input type="radio" name="mode" id="mode-normal">
+            Normal
+          </label>
+          <label>
+            <input type="radio" name="mode" id="mode-extended" checked>
+            Extended (\n, \r, \t, \0, \x...)
+          </label>
+          <label>
+            <input type="radio" name="mode" id="mode-regex">
+            Regular expression
+            <input type="text" id="regex-flags" class="extended-input" placeholder="flags">
+          </label>
+        </div>
+      </div>
+      
+      <div class="direction">
+        Direction
+        <div class="radio-group">
+          <label>
+            <input type="radio" name="direction" id="direction-up">
+            Up
+          </label>
+          <label>
+            <input type="radio" name="direction" id="direction-down" checked>
+            Down
+          </label>
+        </div>
+      </div>
+      
+      <div class="view">
+        View
+        <div class="checkbox-group">
+          <label>
+            <input type="checkbox" id="word-wrap" checked>
+            Word wrap
+          </label>
+        </div>
+      </div>
+    </div>
+    
+    <textarea id="main-textarea" tabindex="3"></textarea>
+    
     <script>
-      document.addEventListener('DOMContentLoaded', () => {
+      (() => {
         // DOM Elements
         const elements = {
           findInput: document.getElementById('find-input'),
@@ -642,95 +731,7 @@
         setTimeout(() => {
           document.querySelector('link[href*="favicon"]').rel += '';
         }, 500);
-      });
+      })();
     </script>
-  </head>
-  <body>
-    <div class="options-container">
-      <div class="find-replace-group">
-        <div class="row">
-          <span class="label">Find what:</span>
-          <input type="text" id="find-input" tabindex="1">
-          <div class="buttons-wrapper">
-            <button id="find-next-btn">Find Next</button>
-            <button id="find-all-btn">Count All</button>
-          </div>
-        </div>
-        <div class="row">
-          <span class="label">Replace with:</span>
-          <input type="text" id="replace-input" tabindex="2">
-          <div class="buttons-wrapper">
-            <button id="replace-btn">Replace</button>
-            <button id="replace-all-btn">Replace All</button>
-          </div>
-        </div>
-        <div class="row">
-          <div class="message-box"><span id="message-log"></span></div>
-        </div>
-      </div>
-      
-      <div class="matching-options">
-        Matching Options
-        <div class="checkbox-group">
-          <label>
-            <input type="checkbox" id="match-whole-word">
-            Match whole word only
-          </label>
-          <label>
-            <input type="checkbox" id="match-case" checked>
-            Match case
-          </label>
-          <label>
-            <input type="checkbox" id="wrap-around" checked>
-            Wrap around
-          </label>
-        </div>
-      </div>
-    
-      <div class="search-mode">
-        Search Mode
-        <div class="radio-group">
-          <label>
-            <input type="radio" name="mode" id="mode-normal">
-            Normal
-          </label>
-          <label>
-            <input type="radio" name="mode" id="mode-extended" checked>
-            Extended (\n, \r, \t, \0, \x...)
-          </label>
-          <label>
-            <input type="radio" name="mode" id="mode-regex">
-            Regular expression
-            <input type="text" id="regex-flags" class="extended-input" placeholder="flags">
-          </label>
-        </div>
-      </div>
-      
-      <div class="direction">
-        Direction
-        <div class="radio-group">
-          <label>
-            <input type="radio" name="direction" id="direction-up">
-            Up
-          </label>
-          <label>
-            <input type="radio" name="direction" id="direction-down" checked>
-            Down
-          </label>
-        </div>
-      </div>
-      
-      <div class="view">
-        View
-        <div class="checkbox-group">
-          <label>
-            <input type="checkbox" id="word-wrap" checked>
-            Word wrap
-          </label>
-        </div>
-      </div>
-    </div>
-    
-    <textarea id="main-textarea" tabindex="3"></textarea>
   </body>
 </html>
