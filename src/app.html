@@ -380,11 +380,12 @@
           } else if (elements.modeExtended.checked) {
           
             pattern = pattern
-              .replace(/\\n/g, '\n')
-              .replace(/\\r/g, '\r')
-              .replace(/\\t/g, '\t')
-              .replace(/\\0/g, '\0')
-              .replace(/\\x([0-9A-Fa-f]{2})/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)));
+              .replace(/(?<!\\)\\n/g, '\n')
+              .replace(/(?<!\\)\\r/g, '\r')
+              .replace(/(?<!\\)\\t/g, '\t')
+              .replace(/(?<!\\)\\0/g, '\0')
+              .replace(/(?<!\\)\\x([0-9A-Fa-f]{2,4})/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
+              .replace(/[\\]{2}([nrt0x])/g, '\\$1');
             
             pattern = pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
               
@@ -488,16 +489,19 @@
 
           if (elements.modeExtended.checked) {
             replacement = replacement
-              .replace(/\\n/g, '\n')
-              .replace(/\\r/g, '\r')
-              .replace(/\\t/g, '\t');
+              .replace(/(?<!\\)\\n/g, '\n')
+              .replace(/(?<!\\)\\r/g, '\r')
+              .replace(/(?<!\\)\\t/g, '\t')
+              .replace(/[\\]{2}([nrt0x])/g, '\\$1');
           } else if (elements.modeRegex.checked) {
             // Use replace method with backreferences for regex mode
             replacement = selection.replace(pattern, replacement);
             replacement = replacement
-              .replace(/\\n/g, '\n')
-              .replace(/\\r/g, '\r')
-              .replace(/\\t/g, '\t');
+              .replace(/(?<!\\)\\n/g, '\n')
+              .replace(/(?<!\\)\\r/g, '\r')
+              .replace(/(?<!\\)\\t/g, '\t')
+              .replace(/[\\]{2}([nrt0x])/g, '\\$1')
+              .replace(/\$/g, '$$');
           } else {
             // Escape replacement string for literal replacement in normal mode
             replacement = replacement.replace(/\$/g, '$$'); // Escape $ for literal $
@@ -526,16 +530,20 @@
 
           if (elements.modeExtended.checked) {
             replacement = replacement
-              .replace(/\\n/g, '\n')
-              .replace(/\\r/g, '\r')
-              .replace(/\\t/g, '\t');
+              .replace(/(?<!\\)\\n/g, '\n')
+              .replace(/(?<!\\)\\r/g, '\r')
+              .replace(/(?<!\\)\\t/g, '\t')
+              .replace(/[\\]{2}([nrt0x])/g, '\\$1')
+              .replace(/\$/g, '$$$$');
           } else if (elements.modeRegex.checked) {
             // Use replaceAll method with backreferences for regex mode
             // replacement = text.replaceAll(pattern, replacement);
             replacement = replacement
-              .replace(/\\n/g, '\n')
-              .replace(/\\r/g, '\r')
-              .replace(/\\t/g, '\t');
+              .replace(/(?<!\\)\\n/g, '\n')
+              .replace(/(?<!\\)\\r/g, '\r')
+              .replace(/(?<!\\)\\t/g, '\t')
+              .replace(/[\\]{2}([nrt0x])/g, '\\$1')
+              .replace(/\$/g, '$$');
           } else {
             // Escape replacement string for literal replacement in normal mode
             replacement = replacement.replace(/\$/g, '$$$$'); // Escape $ for literal $
