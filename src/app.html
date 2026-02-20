@@ -727,6 +727,92 @@
           undoManager.clear();
         }
 
+        // Config persistence via URL hash
+        const defaults = {
+          f: '',       // find text
+          r: '',       // replace text
+          mw: false,   // match whole word
+          mc: true,    // match case
+          wa: true,    // wrap around
+          m: 'ext',    // mode: 'norm', 'ext', 'regex'
+          rf: '',      // regex flags
+          d: 'down',   // direction
+          ww: true,    // word wrap
+        };
+
+        function getConfig() {
+          const config = {};
+          const val = (key, cur, def) => { if (cur !== def) config[key] = cur; };
+          val('f',  elements.findInput.value, defaults.f);
+          val('r',  elements.replaceInput.value, defaults.r);
+          val('mw', elements.matchWord.checked, defaults.mw);
+          val('mc', elements.matchCase.checked, defaults.mc);
+          val('wa', elements.wrapAround.checked, defaults.wa);
+          const mode = elements.modeNormal.checked ? 'norm' : elements.modeRegex.checked ? 'regex' : 'ext';
+          val('m',  mode, defaults.m);
+          val('rf', elements.regexFlags.value, defaults.rf);
+          val('d',  elements.directionUp.checked ? 'up' : 'down', defaults.d);
+          val('ww', elements.wordWrap.checked, defaults.ww);
+          return config;
+        }
+
+        function saveConfigToHash() {
+          const config = getConfig();
+          if (Object.keys(config).length === 0) {
+            try {
+              history.replaceState(null, '', location.pathname + location.search);
+            } catch (e) {
+              window.location.hash = ''; // fallback
+            }
+            return;
+          }
+          const json = JSON.stringify(config);
+          const hash = btoa(unescape(encodeURIComponent(json)));
+          try {
+            history.replaceState(null, '', '#' + hash);
+          } catch (e) {
+            window.location.hash = hash; // fallback
+          }
+        }
+
+        function restoreConfigFromHash() {
+          const hash = location.hash.slice(1);
+          if (!hash) return;
+          try {
+            const json = decodeURIComponent(escape(atob(hash)));
+            const config = JSON.parse(json);
+
+            if (config.f  != null) elements.findInput.value = config.f;
+            if (config.r  != null) elements.replaceInput.value = config.r;
+            if (config.mw != null) elements.matchWord.checked = config.mw;
+            if (config.mc != null) elements.matchCase.checked = config.mc;
+            if (config.wa != null) elements.wrapAround.checked = config.wa;
+            if (config.m  != null) {
+              elements.modeNormal.checked    = config.m === 'norm';
+              elements.modeExtended.checked  = config.m === 'ext';
+              elements.modeRegex.checked     = config.m === 'regex';
+            }
+            if (config.rf != null) elements.regexFlags.value = config.rf;
+            if (config.d  != null) {
+              elements.directionUp.checked   = config.d === 'up';
+              elements.directionDown.checked = config.d === 'down';
+            }
+            if (config.ww != null) {
+              elements.wordWrap.checked = config.ww;
+              elements.textarea.classList.toggle('no-word-wrap', !config.ww);
+            }
+          } catch (e) {
+            // Invalid hash data, ignore
+          }
+        }
+
+        restoreConfigFromHash();
+
+        // Save config on button clicks
+        [elements.findBtn, elements.findAllBtn, elements.replaceBtn, elements.replaceAllBtn].forEach(btn => {
+          btn.addEventListener('click', saveConfigToHash);
+        });
+
         // Workaround for applying favicon image in HTML-preview mode
         setTimeout(() => {
           document.querySelector('link[href*="favicon"]').rel += '';
