@@ -953,34 +953,45 @@
 
           // Ctrl+Shift+ArrowUp/Down: Move line(s) up/down
           if (ctrl && e.shiftKey && !e.altKey && (e.code === 'ArrowUp' || e.code === 'ArrowDown')) {
+            e.preventDefault();
             const text = ta.value;
             const selStart = ta.selectionStart;
             const selEnd = ta.selectionEnd;
-            const firstLineStart = getLineStart(text, selStart);
-            const lastLineEnd = getLineEnd(text, selEnd);
-            const block = text.substring(firstLineStart, lastLineEnd);
+            const lines = text.split('\n');
+
+            // Find which line indices are covered by selection
+            let pos = 0;
+            let startLine = -1, endLine = -1;
+            for (let i = 0; i < lines.length; i++) {
+              const lineEnd = pos + lines[i].length;
+              if (startLine === -1 && lineEnd >= selStart) startLine = i;
+              if (pos <= selEnd && lineEnd >= selEnd) { endLine = i; break; }
+              pos += lines[i].length + 1; // +1 for '\n'
+            }
+            if (startLine === -1) startLine = 0;
+            if (endLine === -1) endLine = lines.length - 1;
 
             if (e.code === 'ArrowUp') {
-              if (firstLineStart === 0) return; // already at top
-              e.preventDefault();
+              if (startLine === 0) { ta.focus(); return; }
               undoManager.saveState(text, selStart, selEnd);
 
-              const prevLineStart = getLineStart(text, firstLineStart - 1);
-              const prevLine = text.substring(prevLineStart, firstLineStart - 1);
+              // Move the target line above the selected block
+              const moved = lines.splice(startLine - 1, 1)[0];
+              lines.splice(endLine, 0, moved);
 
-              ta.value = text.substring(0, prevLineStart) + block + '\n' + prevLine + text.substring(lastLineEnd);
-              const shift = firstLineStart - prevLineStart;
+              ta.value = lines.join('\n');
+              const shift = moved.length + 1;
               ta.setSelectionRange(selStart - shift, selEnd - shift);
             } else {
-              if (lastLineEnd === text.length) return; // already at bottom
-              e.preventDefault();
+              if (endLine >= lines.length - 1) { ta.focus(); return; }
               undoManager.saveState(text, selStart, selEnd);
 
-              const nextLineEnd = getLineEnd(text, lastLineEnd + 1);
-              const nextLine = text.substring(lastLineEnd + 1, nextLineEnd);
+              // Move the target line below the selected block
+              const moved = lines.splice(endLine + 1, 1)[0];
+              lines.splice(startLine, 0, moved);
 
-              ta.value = text.substring(0, firstLineStart) + nextLine + '\n' + block + text.substring(nextLineEnd);
-              const shift = nextLine.length + 1;
+              ta.value = lines.join('\n');
+              const shift = moved.length + 1;
               ta.setSelectionRange(selStart + shift, selEnd + shift);
             }
             ta.focus();
