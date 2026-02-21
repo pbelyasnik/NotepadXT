@@ -83,6 +83,14 @@
         margin-left: 5px;
       }
       
+      select[id="font-family"] {
+        width: calc(100% - 55px);
+        min-width: 51px;
+      }
+      select[id="font-size"] {
+        width: 51px;
+      }
+      
       .message-box .error { color: red; }
       .message-box .info { color: blue; }
       
@@ -112,6 +120,7 @@
         color: rgb(212,212,212); /*HEX: d4d4d4*/
       }
 
+      body.dark select,
       body.dark input[type="text"],
       body.dark textarea {
         background-color: rgb(68,68,68); /*HEX: 444*/
@@ -150,7 +159,7 @@
         color: rgb(108,182,255); /*HEX: 6cb6ff*/
       }
 
-      body, textarea, input, body button {
+      body, textarea, input, select, body button {
         /* Color transition time */
         transition: .2s;
       }
@@ -336,6 +345,25 @@
             <input type="checkbox" id="dark-theme">
             Dark theme
           </label>
+          <span>
+            <select id="font-family">
+              <option value="monospace">Default (monospace)</option>
+              <option value="'Courier New', monospace">Courier New</option>
+              <option value="system-ui, sans-serif">System UI</option>
+              <option value="Georgia, 'Times New Roman', serif">Serif</option>
+            </select>
+            <select id="font-size">
+              <option value="10">10px</option>
+              <option value="12">12px</option>
+              <option value="14">14px</option>
+              <option value="16" selected>16px</option>
+              <option value="18">18px</option>
+              <option value="20">20px</option>
+              <option value="24">24px</option>
+              <option value="28">28px</option>
+              <option value="32">32px</option>
+            </select>
+          </span>
         </div>
       </div>
     </div>
@@ -365,6 +393,8 @@
           directionDown: document.getElementById('direction-down'),
           wordWrap: document.getElementById('word-wrap'),
           darkTheme: document.getElementById('dark-theme'),
+          fontFamily: document.getElementById('font-family'),
+          fontSize: document.getElementById('font-size'),
         };
 
         let lastIndex = 0;
@@ -848,6 +878,14 @@
         elements.darkTheme.addEventListener('change', () => {
           document.body.classList.toggle('dark', elements.darkTheme.checked);
         });
+
+        // Font family and size
+        function applyFont() {
+          elements.textarea.style.fontFamily = elements.fontFamily.value;
+          elements.textarea.style.fontSize = elements.fontSize.value + 'px';
+        }
+        elements.fontFamily.addEventListener('change', applyFont);
+        elements.fontSize.addEventListener('change', applyFont);
         
         // Prevent losing focus on the <textarea>
         document.querySelectorAll('input[type="radio"], input[type="checkbox"]').forEach(input => {
@@ -1014,6 +1052,8 @@
           d: 'down',   // direction
           ww: true,    // word wrap
           dt: browserPrefersDark, // dark theme (dynamic default)
+          ff: 'monospace',  // font family
+          fs: '16',         // font size
         };
 
         function getConfig() {
@@ -1030,6 +1070,8 @@
           val('d',  elements.directionUp.checked ? 'up' : 'down', defaults.d);
           val('ww', elements.wordWrap.checked, defaults.ww);
           val('dt', elements.darkTheme.checked, defaults.dt);
+          val('ff', elements.fontFamily.value, defaults.ff);
+          val('fs', elements.fontSize.value, defaults.fs);
           return config;
         }
 
@@ -1082,6 +1124,9 @@
               elements.darkTheme.checked = config.dt;
               document.body.classList.toggle('dark', config.dt);
             }
+            if (config.ff != null) elements.fontFamily.value = config.ff;
+            if (config.fs != null) elements.fontSize.value = config.fs;
+            applyFont();
           } catch (e) {
             // Invalid hash data, ignore
           }
