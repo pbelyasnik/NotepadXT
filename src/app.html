@@ -106,6 +106,55 @@
         white-space: pre; /* No word-wrap */
       }
 
+      /* Dark Theme */
+      body.dark {
+        background-color: rgb(51,51,51); /*HEX: 333*/
+        color: rgb(212,212,212); /*HEX: d4d4d4*/
+      }
+
+      body.dark input[type="text"],
+      body.dark textarea {
+        background-color: rgb(68,68,68); /*HEX: 444*/
+        border-color: rgb(85,85,85); /*HEX: 555*/
+        color: rgb(238,238,238); /*HEX: eee*/
+        outline: none;
+      }
+      body.dark input[type="text"]:focus,
+      body.dark textarea:focus {
+        border-color: rgb(160,160,160); /*HEX: a0a0a0*/
+      }
+      body.dark textarea::selection {
+        background-color: rgb(38,79,120); /*HEX: 264f78*/
+      }
+
+      body.dark .matching-options,
+      body.dark .search-mode,
+      body.dark .direction,
+      body.dark .view {
+        border-color: rgb(85,85,85); /*HEX: 555*/
+      }
+
+      body.dark button {
+        background-color: rgb(60,60,60); /*HEX: 3c3c3c*/
+        color: rgb(212,212,212); /*HEX: d4d4d4*/
+        border-color: rgb(85,85,85); /*HEX: 555*/
+      }
+      body.dark button:hover {
+        background-color: rgb(74,74,74); /*HEX: 4a4a4a*/
+      }
+
+      body.dark .message-box .error {
+        color: rgb(244,135,113); /*HEX: f48771*/
+      }
+      body.dark .message-box .info {
+        color: rgb(108,182,255); /*HEX: 6cb6ff*/
+      }
+
+      body, textarea, input, body button {
+        /* Color transition time */
+        transition: .2s;
+      }
+
       /* Desktop Layout (Default) */
       @media (min-width: 769px) {
         .options-container {
@@ -283,6 +332,10 @@
             <input type="checkbox" id="word-wrap" checked>
             Word wrap
           </label>
+          <label>
+            <input type="checkbox" id="dark-theme">
+            Dark theme
+          </label>
         </div>
       </div>
     </div>
@@ -311,6 +364,7 @@
           directionUp: document.getElementById('direction-up'),
           directionDown: document.getElementById('direction-down'),
           wordWrap: document.getElementById('word-wrap'),
+          darkTheme: document.getElementById('dark-theme'),
         };
 
         let lastIndex = 0;
@@ -785,6 +839,15 @@
         elements.wordWrap.addEventListener('change', () => {
           elements.textarea.classList.toggle('no-word-wrap', !elements.wordWrap.checked);
         });
+
+        // Dark theme: detect browser preference and apply
+        const browserPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        elements.darkTheme.checked = browserPrefersDark;
+        document.body.classList.toggle('dark', browserPrefersDark);
+
+        elements.darkTheme.addEventListener('change', () => {
+          document.body.classList.toggle('dark', elements.darkTheme.checked);
+        });
         
         // Prevent losing focus on the <textarea>
         document.querySelectorAll('input[type="radio"], input[type="checkbox"]').forEach(input => {
@@ -950,6 +1013,7 @@
           rf: '',      // regex flags
           d: 'down',   // direction
           ww: true,    // word wrap
+          dt: browserPrefersDark, // dark theme (dynamic default)
         };
 
         function getConfig() {
@@ -965,6 +1029,7 @@
           val('rf', elements.regexFlags.value, defaults.rf);
           val('d',  elements.directionUp.checked ? 'up' : 'down', defaults.d);
           val('ww', elements.wordWrap.checked, defaults.ww);
+          val('dt', elements.darkTheme.checked, defaults.dt);
           return config;
         }
 
@@ -1012,6 +1077,10 @@
             if (config.ww != null) {
               elements.wordWrap.checked = config.ww;
               elements.textarea.classList.toggle('no-word-wrap', !config.ww);
+            }
+            if (config.dt != null) {
+              elements.darkTheme.checked = config.dt;
+              document.body.classList.toggle('dark', config.dt);
             }
           } catch (e) {
             // Invalid hash data, ignore
