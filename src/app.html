@@ -1098,8 +1098,9 @@
           }
           const json = JSON.stringify(config);
           const hash = btoa(unescape(encodeURIComponent(json)));
+          const hashSymbol = String.fromCharCode(35);
           try {
-            history.replaceState(null, '', '#' + hash);
+            history.replaceState(null, '', hashSymbol + hash);
           } catch (e) {
             window.location.hash = hash; // fallback
           }
