@@ -812,18 +812,125 @@
 
         // Add keyboard shortcuts
         document.addEventListener('keydown', (e) => {
+          const ta = elements.textarea;
+          const ctrl = e.ctrlKey || e.metaKey;
+
           // Undo: Ctrl/Cmd + Z
-          if ((e.ctrlKey || e.metaKey) && e.code === 'KeyZ' && !e.shiftKey) {
+          if (ctrl && e.code === 'KeyZ' && !e.shiftKey) {
             e.preventDefault();
             undoManager.undo();
-            elements.textarea.focus();
+            ta.focus();
+            return;
           }
-          
+
           // Redo: Ctrl/Cmd + Y or Ctrl/Cmd + Shift + Z
-          if ((e.ctrlKey || e.metaKey) && (e.code === 'KeyY' || (e.code === 'KeyZ' && e.shiftKey))) {
+          if (ctrl && (e.code === 'KeyY' || (e.code === 'KeyZ' && e.shiftKey))) {
             e.preventDefault();
             undoManager.redo();
-            elements.textarea.focus();
+            ta.focus();
+            return;
+          }
+
+          // Ctrl+D: Duplicate line(s)
+          if (ctrl && e.code === 'KeyD' && !e.shiftKey && !e.altKey) {
+            e.preventDefault();
+            const text = ta.value;
+            const selStart = ta.selectionStart;
+            const selEnd = ta.selectionEnd;
+            undoManager.saveState(text, selStart, selEnd);
+
+            const firstLineStart = getLineStart(text, selStart);
+            const lastLineEnd = getLineEnd(text, selEnd);
+            const block = text.substring(firstLineStart, lastLineEnd);
+
+            ta.value = text.substring(0, lastLineEnd) + '\n' + block + text.substring(lastLineEnd);
+            // Keep cursor on the original line(s)
+            ta.setSelectionRange(selStart, selEnd);
+            ta.focus();
+            return;
+          }
+
+          // Ctrl+Shift+ArrowUp/Down: Move line(s) up/down
+          if (ctrl && e.shiftKey && !e.altKey && (e.code === 'ArrowUp' || e.code === 'ArrowDown')) {
+            const text = ta.value;
+            const selStart = ta.selectionStart;
+            const selEnd = ta.selectionEnd;
+            const firstLineStart = getLineStart(text, selStart);
+            const lastLineEnd = getLineEnd(text, selEnd);
+            const block = text.substring(firstLineStart, lastLineEnd);
+
+            if (e.code === 'ArrowUp') {
+              if (firstLineStart === 0) return; // already at top
+              e.preventDefault();
+              undoManager.saveState(text, selStart, selEnd);
+
+              const prevLineStart = getLineStart(text, firstLineStart - 1);
+              const prevLine = text.substring(prevLineStart, firstLineStart - 1);
+
+              ta.value = text.substring(0, prevLineStart) + block + '\n' + prevLine + text.substring(lastLineEnd);
+              const shift = firstLineStart - prevLineStart;
+              ta.setSelectionRange(selStart - shift, selEnd - shift);
+            } else {
+              if (lastLineEnd === text.length) return; // already at bottom
+              e.preventDefault();
+              undoManager.saveState(text, selStart, selEnd);
+
+              const nextLineEnd = getLineEnd(text, lastLineEnd + 1);
+              const nextLine = text.substring(lastLineEnd + 1, nextLineEnd);
+
+              ta.value = text.substring(0, firstLineStart) + nextLine + '\n' + block + text.substring(nextLineEnd);
+              const shift = nextLine.length + 1;
+              ta.setSelectionRange(selStart + shift, selEnd + shift);
+            }
+            ta.focus();
+            forceScrollTextArea(ta.selectionStart, ta.selectionEnd);
+            return;
+          }
+
+          // Ctrl+U: Lowercase selected text
+          if (ctrl && e.code === 'KeyU' && !e.shiftKey && !e.altKey) {
+            e.preventDefault();
+            const selStart = ta.selectionStart;
+            const selEnd = ta.selectionEnd;
+            if (selStart === selEnd) return;
+            const text = ta.value;
+            undoManager.saveState(text, selStart, selEnd);
+            const selected = text.substring(selStart, selEnd);
+            ta.value = text.substring(0, selStart) + selected.toLowerCase() + text.substring(selEnd);
+            ta.setSelectionRange(selStart, selEnd);
+            ta.focus();
+            return;
+          }
+
+          // Ctrl+Shift+U: Uppercase selected text
+          if (ctrl && e.code === 'KeyU' && e.shiftKey && !e.altKey) {
+            e.preventDefault();
+            const selStart = ta.selectionStart;
+            const selEnd = ta.selectionEnd;
+            if (selStart === selEnd) return;
+            const text = ta.value;
+            undoManager.saveState(text, selStart, selEnd);
+            const selected = text.substring(selStart, selEnd);
+            ta.value = text.substring(0, selStart) + selected.toUpperCase() + text.substring(selEnd);
+            ta.setSelectionRange(selStart, selEnd);
+            ta.focus();
+            return;
+          }
+
+          // Ctrl+S: Save textarea content to file
+          if (ctrl && e.code === 'KeyS' && !e.shiftKey && !e.altKey) {
+            e.preventDefault();
+            const filename = prompt('Save as:', 'untitled.txt');
+            if (!filename) return;
+            const content = ta.value.replace(/\r\n?/g, '\n');
+            const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(url);
+            return;
           }
         });
 
