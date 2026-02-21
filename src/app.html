@@ -667,14 +667,119 @@
           lastIndex = 0;
         });
         
-        // Tab Key Handling
+        // Tab Key Handling - indent / dedent lines
+        const INDENT = '  '; // 2 spaces
+
+        function getLineStart(text, pos) {
+          return text.lastIndexOf('\n', pos - 1) + 1;
+        }
+
+        function getLineEnd(text, pos) {
+          const idx = text.indexOf('\n', pos);
+          return idx === -1 ? text.length : idx;
+        }
+
+        // Convert leading tabs to 4 spaces in a single line
+        function convertLeadingTabs(line) {
+          return line.replace(/^(\t| )+/, m => m.replace(/\t/g, '    '));
+        }
+
+        function shouldIndent(text, selStart, selEnd) {
+          const lineStart = getLineStart(text, selStart);
+          const lineEnd = getLineEnd(text, selStart);
+          const selectedText = text.substring(selStart, selEnd);
+          const selectedLineCount = selectedText.split('\n').length;
+
+          // Multi-line selection (2+ lines)
+          if (selectedLineCount >= 2) return true;
+
+          // At least 2 chars selected in a single line
+          if (selEnd - selStart >= 2) return true;
+
+          // Cursor at position 0 of the line
+          if (selStart === lineStart) return true;
+
+          const textBeforeCursor = text.substring(lineStart, selStart);
+          const textAfterCursor = text.substring(selStart, lineEnd);
+
+          // Cursor in leading tab symbols only
+          if (/^[\t]*$/.test(textBeforeCursor) && textAfterCursor === '') return false;
+
+          // Cursor in leading whitespace area
+          if (/^[\t ]*$/.test(textBeforeCursor)) return true;
+
+          return false;
+        }
+
         elements.textarea.addEventListener('keydown', function(e) {
-          if (e.key == 'Tab') {
-            e.preventDefault();
-            var startPos = this.selectionStart;
-            this.value = this.value.substring(0, startPos) + "\t" + this.value.substring(this.selectionEnd);
-            this.selectionStart = this.selectionEnd = startPos + 1;
+          if (e.key !== 'Tab') return;
+          // Only exact Tab or Shift+Tab (no Ctrl, Alt, Meta)
+          if (e.ctrlKey || e.altKey || e.metaKey) return;
+
+          const text = this.value;
+          const selStart = this.selectionStart;
+          const selEnd = this.selectionEnd;
+
+          if (!shouldIndent(text, selStart, selEnd)) {
+            if (!e.shiftKey) {
+              e.preventDefault();
+              undoManager.saveState(text, selStart, selEnd); // Save undo state
+              var startPos = this.selectionStart;
+              this.value = this.value.substring(0, startPos) + "\t" + this.value.substring(this.selectionEnd);
+              this.selectionStart = this.selectionEnd = startPos + 1;
+            }
+            return;
           }
+
+          e.preventDefault();
+
+          // Save undo state
+          undoManager.saveState(text, selStart, selEnd);
+
+          const firstLineStart = getLineStart(text, selStart);
+          const lastLineEnd = getLineEnd(text, selEnd);
+          const block = text.substring(firstLineStart, lastLineEnd);
+          const lines = block.split('\n');
+
+          let newLines;
+          let startDelta = 0; // shift for selStart
+          let endDelta = 0;   // shift for selEnd
+
+          if (!e.shiftKey) {
+            // Increase indent
+            newLines = lines.map((line, i) => {
+              const converted = convertLeadingTabs(line);
+              const added = INDENT + converted;
+              const diff = added.length - line.length;
+              if (i === 0) startDelta = diff;
+              endDelta += diff;
+              return added;
+            });
+          } else {
+            // Decrease indent
+            newLines = lines.map((line, i) => {
+              const converted = convertLeadingTabs(line);
+              let removed;
+              if (converted.startsWith(INDENT)) {
+                removed = converted.substring(INDENT.length);
+              } else {
+                // Remove as many leading spaces as possible (up to 4)
+                removed = converted.replace(/^ {1,4}/, '');
+              }
+              const diff = removed.length - line.length;
+              if (i === 0) startDelta = diff;
+              endDelta += diff;
+              return removed;
+            });
+          }
+
+          const newBlock = newLines.join('\n');
+          this.value = text.substring(0, firstLineStart) + newBlock + text.substring(lastLineEnd);
+
+          // Restore selection across affected lines
+          const newStart = Math.max(firstLineStart, selStart + startDelta);
+          const newEnd = Math.max(newStart, selEnd + endDelta);
+          this.setSelectionRange(newStart, newEnd);
         });
         
         elements.wordWrap.addEventListener('change', () => {
