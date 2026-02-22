@@ -44,6 +44,32 @@ NotepadXT offers the following features:
 ### View
 
 *   **Word Wrap:** Enables or disables word wrapping in the text area.
+*   **Dark Theme:** Toggles between light and dark color schemes.
+*   **Font:** Choose the font used in the text area.
+*   **Size:** Adjust the font size in the text area.
+
+### Editor Shortcuts
+
+Keyboard shortcuts available while editing text in the text area:
+
+| Shortcut | Action |
+|---|---|
+| `Tab` | Indent selected line(s) |
+| `Shift+Tab` | Unindent selected line(s) |
+| `Ctrl+D` | Duplicate current line (or all selected lines) below; cursor stays on the original line |
+| `Ctrl+Shift+Up` | Move current line (or selected lines) up |
+| `Ctrl+Shift+Down` | Move current line (or selected lines) down |
+| `Ctrl+U` | Lowercase selected text |
+| `Ctrl+Shift+U` | Uppercase selected text |
+| `Ctrl+S` | Download textarea content as a UTF-8 text file |
+| `Ctrl+Z` / `Cmd+Z` | Undo |
+| `Ctrl+Y` / `Cmd+Y` / `Ctrl+Shift+Z` / `Cmd+Shift+Z` | Redo |
+
+All shortcuts preserve the selection range after the operation and save undo state before modifying.
+
+### Configuration Persistence
+
+The app's configuration (search options, view settings, etc.) is saved in the URL hash and automatically restored on reload.
 
 ## How to Use
 
